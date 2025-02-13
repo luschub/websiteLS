@@ -5,36 +5,81 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Über mich - Meine Online-Visitenkarte</title>
     <link rel="stylesheet" href="styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 </head>
 <body>
     <header>
-        <nav>
-            <label for="menu-toggle" class="menu-icon"><span class="material-icons">menu</span></label>
-            <input type="checkbox" id="menu-toggle">
-            <ul>
-                <li><a href="about.html">Über mich</a></li>
-                <li><a href="projects.html">Projekte</a></li>
-                <li><a href="cv.html">CV</a></li>
-                <li><a href="contact.html">Kontakt</a></li>
-                <li><a href="testimonials.html">Testimonials</a></li>
-                <li><a href="skills.html">Skills</a></li>
-                <li><a href="blog.html">Blog</a></li>
-            </ul>
-        </nav>
+        <div class="header-content">
+            <div class="site-name">Lutz Schubbert</div>
+            <nav>
+                <label for="menu-toggle" class="menu-icon"><span class="material-icons">menu</span></label>
+                <input type="checkbox" id="menu-toggle">
+                <ul>
+                    <li><a href="index.html">Start</a></li>
+                    <li><a href="about.html">Über mich</a></li>
+                    <li><a href="cv.html">CV</a></li>
+                    <li><a href="fachprojekte.html">Fachprojekte</a></li>
+                    <li><a href="eigenprojekte.html">Eigenprojekte</a></li>
+                    <li><a href="blog.html">Blog</a></li>
+                </ul>
+            </nav>
+        </div>
     </header>
+    <section id="hero" class="hero-about-page">
+        <div class="hero-content">
+            <div class="circle-image" style="background-image: url('docs/ls_strand.jpg');"></div>
+        </div>
+    </section>
     <section id="about">
-        <h1>Über mich</h1>
-        <p>Hier kannst du dich kurz vorstellen.</p>
-        <span class="material-icons">person</span>
+        <div class="about-content">
+            <div class="row">
+                <div class="column large-text black-text">
+                    <h1>Hallo, herzlich Willkommen!</h1>
+                </div>
+            </div>
+            <div class="row">
+                <p class="medium-text">Ich bin Lutz Schubbert, Nachhaltigkeitsmanager und Fußball-Insider</p>
+            </div>
+            <div class="row">
+                <p class="medium-text">Im Team zu agieren verspricht die besten Lösungen zu finden, wenn die Herausforderungen groß erscheinen!</p>
+            </div>
+            <div class="row">
+                <div class="column">
+                    <h2>Über mich</h2>
+                    <p>Erfahrung in Produktstrategie & Produktmanagement.</p>
+                </div>
+                <div class="column">
+                    <h2>Mein Arbeitsansatz</h2>
+                    <p> Txt über meine Arbeitsweise</p>
+                </div>
+            </div>
+            <div class="row">
+                <div class="column">
+                    <h2>Meine Rollen</h2>
+                    <p>Nachhaltigkeitsberater</p>
+                    <p>Organisationsleiter</p>
+                    <p>Coach | Mentor | Sparringspartner | Fragensteller</p>
+                </div>
+                <div class="column">
+                    <h2>Ausbildungen</h2>
+                    <p>Bachelor Business Administration, Sportmanagement, Hochschule Wismar</p>
+                    <p>A-Lizenz Trainer (Deutscher Fußballbund, DFB)</p>
+                </div>
+            </div>
+        </div>
     </section>
     <footer>
-        <p>&copy; 2025 Dein Name</p>
-        <div class="social-media">
-            <a href="https://twitter.com/deinprofil" target="_blank"><span class="material-icons">twitter</span></a>
-            <a href="https://linkedin.com/in/deinprofil" target="_blank"><span class="material-icons">linkedin</span></a>
-            <a href="https://github.com/deinprofil" target="_blank"><span class="material-icons">github</span></a>
+        <div class="footer-content">
+            <div class="footer-column">
+                <a href="https://www.linkedin.com/in/deinprofil" target="_blank">
+                    <span class="material-icons">linkedin</span> LinkedIn
+                </a>
+            </div>
+            <div class="footer-column">
+                <a href="impressum.html">Impressum</a>
+                <a href="datenschutz.html">Datenschutz</a>
+            </div>
         </div>
     </footer>
 </body>
