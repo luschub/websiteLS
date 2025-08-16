@@ -1,0 +1,1864 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live‑Tagging Modell</title>
+    <!-- Basic styling for the static click model.  
+         The layout is kept simple and flexible using flexbox.  
+         Colors and spacing are chosen to clearly separate the different areas of the UI. -->
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            display: flex;
+            height: 100vh;
+            background-color: #f8f9fa;
+            color: #1a1a1a;
+        }
+        /* Sidebar containing the project list */
+        #sidebar {
+            width: 220px;
+            background: #f8f9fa;
+            color: #495057;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
+            border-right: 1px solid #dee2e6;
+        }
+        #sidebar h2 {
+            margin-top: 0;
+            font-size: 1.2em;
+            color: #495057;
+            font-weight: 500;
+            border-bottom: 1px solid #dee2e6;
+            padding-bottom: 8px;
+        }
+        #sidebar ul {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 20px 0;
+        }
+        #sidebar li {
+            padding: 8px 12px;
+            margin-bottom: 4px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: #6c757d;
+        }
+        #sidebar li:hover {
+            background: #e9ecef;
+            color: #495057;
+        }
+        /* Main content area */
+        #main {
+            flex: 1;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        /* Timer and QuickTag section */
+        #top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        #timer-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        #timer {
+            font-size: 1.6em;
+            font-weight: 600;
+            padding: 8px 16px;
+            background: #ffffff;
+            color: #495057;
+            border: 2px solid #dee2e6;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        #timer-buttons button {
+            margin-right: 6px;
+            padding: 8px 14px;
+            font-size: 0.9em;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            cursor: pointer;
+            color: #495057;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            background: #ffffff;
+        }
+        #timer-buttons button.start:hover {
+            background: #28a745;
+            color: white;
+            border-color: #28a745;
+        }
+        #timer-buttons button.stop:hover {
+            background: #dc3545;
+            color: white;
+            border-color: #dc3545;
+        }
+        #timer-buttons button.reset:hover {
+            background: #6c757d;
+            color: white;
+            border-color: #6c757d;
+        }
+        /* QuickTag buttons */
+        #quick-tags {
+            display: flex;
+            gap: 10px;
+        }
+        #quick-tags button {
+            padding: 10px 16px;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            color: #495057;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: #ffffff;
+        }
+        #quick-tags button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        /* Colors for different quick tags */
+        .goal:hover {
+            background: #dc3545;
+            color: white;
+            border-color: #dc3545;
+        }
+        .halftime:hover {
+            background: #fd7e14;
+            color: white;
+            border-color: #fd7e14;
+        }
+        
+        /* Event Protocol Section */
+        #event-protocol {
+            background: #ffffff;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            margin-top: 20px;
+            max-height: 300px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        #event-protocol h3 {
+            margin: 0;
+            padding: 12px 16px;
+            background: #f8f9fa;
+            color: #495057;
+            border-radius: 6px 6px 0 0;
+            font-weight: 500;
+            font-size: 1.1em;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        #event-list {
+            padding: 12px 16px;
+            min-height: 100px;
+            max-height: 250px;
+            overflow-y: auto;
+            background: #ffffff;
+        }
+        
+        .event-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            margin-bottom: 6px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            border-left: 3px solid #6c757d;
+            font-size: 0.9em;
+            transition: all 0.2s ease;
+        }
+        
+        .event-item:hover {
+            background: #e9ecef;
+        }
+        
+        .event-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .event-time {
+            font-weight: 600;
+            color: #495057;
+            min-width: 60px;
+            font-size: 0.95em;
+        }
+        
+        .event-type {
+            font-weight: 500;
+            margin-right: 10px;
+            font-size: 1em;
+        }
+        
+        .event-details {
+            flex: 1;
+            color: #6c757d;
+            font-weight: 400;
+        }
+        
+        .event-half {
+            background: #6c757d;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 500;
+            min-width: 25px;
+            text-align: center;
+        }
+        
+        /* Modal Dialog */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        
+        .modal-content {
+            background-color: #ffffff;
+            margin: 10% auto;
+            padding: 0;
+            border-radius: 8px;
+            width: 85%;
+            max-width: 500px;
+            position: relative;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            border: 1px solid #dee2e6;
+        }
+        
+        .modal-header {
+            background: #f8f9fa;
+            color: #495057;
+            padding: 16px 20px;
+            margin: 0;
+            border-bottom: 1px solid #dee2e6;
+            border-radius: 8px 8px 0 0;
+        }
+        
+        .modal-header h3 {
+            margin: 0;
+            color: #495057;
+            font-weight: 500;
+            font-size: 1.2em;
+        }
+        
+        .close {
+            position: absolute;
+            right: 16px;
+            top: 16px;
+            color: #6c757d;
+            font-size: 24px;
+            font-weight: 300;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+        
+        .close:hover {
+            background: #e9ecef;
+            color: #495057;
+        }
+        
+        .form-group {
+            margin-bottom: 16px;
+            padding: 0 20px;
+        }
+        
+        .form-group:first-of-type {
+            margin-top: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            color: #495057;
+            font-size: 0.9em;
+        }
+        
+        .form-group select,
+        .form-group input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            box-sizing: border-box;
+        }
+        
+        .form-group select:focus,
+        .form-group input:focus {
+            outline: none;
+            border-color: #80bdff;
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        }
+        
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin: 20px;
+            margin-top: 24px;
+            padding-top: 16px;
+            border-top: 1px solid #dee2e6;
+        }
+        
+        .modal-buttons button {
+            padding: 10px 20px;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.9em;
+            transition: all 0.2s ease;
+            background: #ffffff;
+            color: #495057;
+        }
+        
+        .btn-primary {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        
+        .btn-primary:hover {
+            background: #0056b3;
+            border-color: #0056b3;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+            border-color: #6c757d;
+        }
+        
+        .btn-secondary:hover {
+            background: #545b62;
+            border-color: #545b62;
+        }
+        /* Tagging grid for custom events */
+        #tagging-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .tag-button {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 10px;
+            border-radius: 6px;
+            color: #495057;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 500;
+            background: #ffffff;
+            border: 1px solid #dee2e6;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        .tag-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+            border-color: #6c757d;
+        }
+        .tag-count {
+            margin-top: 6px;
+            font-size: 0.8em;
+            font-weight: 600;
+            background: #f8f9fa;
+            color: #6c757d;
+            padding: 2px 6px;
+            border-radius: 8px;
+            min-width: 18px;
+            text-align: center;
+            border: 1px solid #dee2e6;
+        }
+        /* Player lists */
+        #players-section {
+            display: flex;
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+        .player-list {
+            flex: 1;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 3px 15px rgba(0, 51, 102, 0.08);
+            border: 2px solid #e0e6ed;
+        }
+        .player-list h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: #003366;
+            font-weight: 600;
+            border-bottom: 2px solid #0066cc;
+            padding-bottom: 8px;
+        }
+        .player-list ul {
+            list-style: none;
+            padding: 0;
+        }
+        .player-list li {
+            padding: 8px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #f0f2f5;
+        }
+        .player-list li:last-child {
+            border-bottom: none;
+        }
+        .player-select {
+            flex: 1;
+            padding: 8px 12px;
+            border: 2px solid #e0e6ed;
+            border-radius: 8px;
+            background: white;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+        .player-select:focus {
+            outline: none;
+            border-color: #0066cc;
+            box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+        }
+        .position-label {
+            width: 35px;
+            font-size: 0.85em;
+            color: #003366;
+            margin-right: 10px;
+            font-weight: 600;
+        }
+        
+        /* Substitution section */
+        #substitution-section h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+        
+        /* Upload section */
+        #player-upload-section {
+            margin-top: 15px;
+        }
+        
+        /* Tags management section */
+        #tags-management-section {
+            margin-top: 15px;
+        }
+        
+        #tags-management-section button {
+            font-size: 0.9em;
+            transition: background-color 0.2s;
+        }
+        
+        #tags-management-section button:hover {
+            opacity: 0.9;
+        }
+        /* Notes section */
+        #notes-section {
+            margin-bottom: 20px;
+        }
+        #notes-section h3 {
+            margin-top: 0;
+        }
+        #note-input {
+            width: 100%;
+            min-height: 80px;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            resize: vertical;
+        }
+        #player-select {
+            width: 100%;
+            padding: 6px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            margin-top: 6px;
+        }
+        /* Export buttons */
+        #export-section {
+            margin-top: auto;
+            display: flex;
+            gap: 10px;
+        }
+        #export-section button {
+            padding: 10px 16px;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            cursor: pointer;
+            color: #495057;
+            font-weight: 500;
+            font-size: 0.9em;
+            transition: all 0.2s ease;
+            background: #ffffff;
+            flex: 1;
+        }
+        #export-section button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        #export-xml:hover {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        #export-json:hover {
+            background: #28a745;
+            color: white;
+            border-color: #28a745;
+        }
+        
+        /* Mobile Optimierungen */
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+            }
+            
+            #sidebar {
+                width: 100%;
+                height: auto;
+                padding: 15px;
+                order: 2;
+                transition: max-height 0.3s ease;
+                overflow: hidden;
+            }
+            
+            #sidebar.collapsed {
+                max-height: 0;
+                padding: 0 15px;
+            }
+            
+            #sidebar.expanded {
+                max-height: 500px;
+            }
+            
+            #mobile-nav {
+                display: block;
+                background: #2c3e50;
+                color: #ecf0f1;
+                padding: 15px;
+                text-align: center;
+                cursor: pointer;
+                order: 0;
+                font-weight: bold;
+            }
+            
+            #mobile-nav:before {
+                content: "▼ ";
+                transition: transform 0.3s ease;
+            }
+            
+            #mobile-nav.collapsed:before {
+                transform: rotate(-90deg);
+                content: "▶ ";
+            }
+            
+            #sidebar h2 {
+                font-size: 1.2em;
+                margin-bottom: 10px;
+            }
+            
+            #sidebar ul {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 5px;
+                margin-bottom: 10px;
+            }
+            
+            #sidebar li {
+                padding: 6px 12px;
+                margin-bottom: 0;
+                font-size: 0.9em;
+            }
+            
+            #main {
+                order: 1;
+                padding: 15px;
+                height: auto;
+            }
+            
+            #top-bar {
+                flex-direction: column;
+                gap: 15px;
+                align-items: stretch;
+                margin-bottom: 15px;
+            }
+            
+            #timer-container {
+                justify-content: center;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+            
+            #timer {
+                font-size: 1.5em;
+                padding: 8px 20px;
+            }
+            
+            #timer-buttons button {
+                padding: 12px 16px;
+                font-size: 1em;
+                margin-right: 8px;
+                min-height: 44px;
+            }
+            
+            #quick-tags {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+            }
+            
+            .modal-content {
+                margin: 5% auto;
+                width: 95%;
+                max-width: none;
+            }
+            
+            #event-protocol {
+                max-height: 200px;
+            }
+            
+            #quick-tags button {
+                padding: 15px 20px;
+                font-size: 1em;
+                min-height: 44px;
+            }
+            
+            #tagging-grid {
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+                gap: 10px;
+                margin-bottom: 15px;
+            }
+            
+            .tag-button {
+                padding: 15px 10px;
+                min-height: 60px;
+                font-size: 0.9em;
+            }
+            
+            #players-section {
+                flex-direction: column;
+                gap: 15px;
+                margin-bottom: 15px;
+            }
+            
+            .player-select {
+                padding: 12px 10px;
+                font-size: 16px; /* Verhindert Zoom auf iOS */
+                min-height: 20px;
+            }
+            
+            #substitution-section > div {
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            #sub-out-select,
+            #sub-in-select,
+            #formation-select {
+                padding: 12px;
+                font-size: 16px;
+                min-height: 44px;
+            }
+            
+            #make-substitution-btn,
+            #clear-lineup-btn,
+            #upload-players-btn,
+            #default-tags-btn,
+            #upload-tags-btn,
+            #clear-tags-btn {
+                padding: 12px 16px;
+                min-height: 44px;
+                font-size: 1em;
+            }
+            
+            #note-input {
+                padding: 12px;
+                font-size: 16px; /* Verhindert Zoom auf iOS */
+                min-height: 100px;
+            }
+            
+            #player-select {
+                padding: 12px;
+                font-size: 16px; /* Verhindert Zoom auf iOS */
+                min-height: 44px;
+            }
+            
+            #export-section {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            #export-section button {
+                padding: 15px 20px;
+                font-size: 1em;
+                min-height: 44px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            #main {
+                padding: 10px;
+            }
+            
+            #timer {
+                font-size: 1.3em;
+                padding: 6px 15px;
+            }
+            
+            #quick-tags {
+                grid-template-columns: 1fr;
+            }
+            
+            #tagging-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 8px;
+            }
+            
+            .tag-button {
+                padding: 12px 8px;
+                min-height: 55px;
+                font-size: 0.85em;
+            }
+            
+            .player-list h3 {
+                font-size: 1.1em;
+            }
+        }
+        
+        /* Touch-Optimierungen */
+        #mobile-nav {
+            display: none;
+        }
+        
+        @media (hover: none) and (pointer: coarse) {
+            .tag-button:active,
+            #quick-tags button:active,
+            #timer-buttons button:active,
+            #export-section button:active {
+                transform: scale(0.95);
+                transition: transform 0.1s ease;
+            }
+            
+            /* Entfernt Hover-Effekte auf Touch-Geräten */
+            #sidebar li:hover {
+                background: inherit;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="mobile-nav">Navigation & Filter</div>
+    <div id="sidebar" class="collapsed">
+        <h2>Projekte</h2>
+        <ul>
+            <li>Favoriten</li>
+            <li>Tags</li>
+            <li>Archiv</li>
+        </ul>
+        <h2>Filter</h2>
+        <ul>
+            <li>⭐ Highlights</li>
+            <li>📄 Alle Ereignisse</li>
+        </ul>
+        
+        <h2>Spielerliste</h2>
+        <div id="player-upload-section">
+            <input type="file" id="player-file-input" accept=".txt" style="display: none;">
+            <button id="upload-players-btn" style="background: #28a745; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; width: 100%; margin-bottom: 10px; font-weight: 500; font-size: 0.9em;">
+                📄 Spielerliste hochladen
+            </button>
+            <div id="uploaded-players" style="font-size: 0.9em; color: #bdc3c7;">
+                Keine Spielerliste geladen
+            </div>
+        </div>
+        
+        <h2>Tagging-Begriffe</h2>
+        <div id="tags-management-section">
+            <div style="margin-bottom: 10px;">
+                <button id="default-tags-btn" style="background: #007bff; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; width: 100%; margin-bottom: 6px; font-weight: 500; font-size: 0.9em;">
+                    🏈 Standard Begriffe laden
+                </button>
+                <input type="file" id="tags-file-input" accept=".txt" style="display: none;">
+                <button id="upload-tags-btn" style="background: #6f42c1; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; width: 100%; margin-bottom: 6px; font-weight: 500; font-size: 0.9em;">
+                    📋 Eigene Begriffe hochladen
+                </button>
+                <button id="clear-tags-btn" style="background: #dc3545; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; width: 100%; margin-bottom: 10px; font-weight: 500; font-size: 0.9em;">
+                    🗑️ Begriffe löschen
+                </button>
+            </div>
+            <div id="uploaded-tags" style="font-size: 0.9em; color: #bdc3c7;">
+                Standard Begriffe geladen
+            </div>
+        </div>
+    </div>
+    <div id="main">
+        <!-- Timer and quick tag bar -->
+        <div id="top-bar">
+            <div id="timer-container">
+                <span id="timer">00:00</span>
+                <div id="timer-buttons">
+                    <button class="start">Start</button>
+                    <button class="stop">Stop</button>
+                    <button class="reset">Reset</button>
+                </div>
+            </div>
+            <div id="quick-tags">
+                <button class="goal">⚽ Tor</button>
+                <button class="halftime">⏱️ Halbzeit</button>
+            </div>
+        </div>
+        <!-- Tagging grid for custom events -->
+        <div id="tagging-grid">
+            <!-- Wird dynamisch gefüllt -->
+        </div>
+        <!-- Player management section -->
+        <div id="players-section">
+            <div class="player-list">
+                <h3>Startelf</h3>
+                <div id="formation-selector" style="margin-bottom: 10px;">
+                    <select id="formation-select" style="padding: 6px; border-radius: 4px; border: 1px solid #ccc;">
+                        <option value="442">4-4-2</option>
+                        <option value="433">4-3-3</option>
+                        <option value="352">3-5-2</option>
+                        <option value="541">5-4-1</option>
+                        <option value="custom">Benutzerdefiniert</option>
+                    </select>
+                    <button id="clear-lineup-btn" style="margin-left: 10px; padding: 6px 12px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                        Aufstellung leeren
+                    </button>
+                </div>
+                <ul id="startxi-list">
+                    <!-- Wird dynamisch gefüllt -->
+                </ul>
+            </div>
+            <div class="player-list">
+                <h3>Bank</h3>
+                <ul id="bench-list">
+                    <!-- Wird dynamisch gefüllt -->
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Substitution management section -->
+        <div id="substitution-section" style="margin-bottom: 20px;">
+            <h3>Auswechslungen verwalten</h3>
+            <div style="display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
+                <select id="sub-out-select" style="flex: 1; padding: 8px; border-radius: 4px; border: 1px solid #ccc; min-width: 120px;">
+                    <option value="">Spieler raus...</option>
+                </select>
+                <select id="sub-in-select" style="flex: 1; padding: 8px; border-radius: 4px; border: 1px solid #ccc; min-width: 120px;">
+                    <option value="">Spieler rein...</option>
+                </select>
+                <button id="make-substitution-btn" style="padding: 8px 16px; background: #2ecc71; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                    Auswechseln
+                </button>
+            </div>
+            <div id="substitutions-log" style="background: #ecf0f1; padding: 10px; border-radius: 4px; min-height: 60px;">
+                <strong>Auswechslungen:</strong>
+                <div id="substitutions-list" style="margin-top: 5px; font-size: 0.9em;">
+                    Noch keine Auswechslungen
+                </div>
+            </div>
+        </div>
+        <!-- Notes section -->
+        <div id="notes-section">
+            <h3>Notiz</h3>
+            <textarea id="note-input" placeholder="Notiz zum Ereignis eingeben..."></textarea>
+            <select id="player-select">
+                <option value="">Spieler zuordnen...</option>
+            </select>
+        </div>
+        <!-- Export buttons -->
+        <div id="export-section">
+            <button id="export-xml">Exportiere XML</button>
+            <button id="export-json">Exportiere JSON</button>
+        </div>
+        
+        <!-- Event Protocol -->
+        <div id="event-protocol">
+            <h3>📋 Spielprotokoll</h3>
+            <div id="event-list">
+                <div style="text-align: center; color: #666; padding: 20px;">
+                    Noch keine Ereignisse protokolliert
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Goal Modal -->
+    <div id="goalModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div class="modal-header">
+                <h3>⚽ Tor Details</h3>
+            </div>
+            <div class="form-group">
+                <label for="goalScorer">Torschütze:</label>
+                <input type="text" id="goalScorer" placeholder="Name des Torschützen eingeben..." list="player-list-scorer">
+                <datalist id="player-list-scorer">
+                    <!-- Wird dynamisch gefüllt -->
+                </datalist>
+            </div>
+            <div class="form-group">
+                <label for="goalAssist">Vorlage von:</label>
+                <input type="text" id="goalAssist" placeholder="Name des Vorlagengebers (optional)..." list="player-list-assist">
+                <datalist id="player-list-assist">
+                    <!-- Wird dynamisch gefüllt -->
+                </datalist>
+            </div>
+            <div class="form-group">
+                <label for="goalNote">Zusätzliche Notiz:</label>
+                <input type="text" id="goalNote" placeholder="z.B. Elfmeter, Eigentor, etc.">
+            </div>
+            <div class="modal-buttons">
+                <button type="button" class="btn-secondary" onclick="closeGoalModal()">Abbrechen</button>
+                <button type="button" class="btn-primary" onclick="saveGoal()">Tor speichern</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Halftime Modal -->
+    <div id="halftimeModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div class="modal-header">
+                <h3>⏱️ Halbzeit</h3>
+            </div>
+            <p>Welche Aktion möchten Sie durchführen?</p>
+            <div class="modal-buttons">
+                <button type="button" class="btn-secondary" onclick="closeHalftimeModal()">Abbrechen</button>
+                <button type="button" class="btn-primary" onclick="endFirstHalf()">1. Halbzeit beenden</button>
+                <button type="button" class="btn-primary" onclick="startSecondHalf()">2. Halbzeit starten</button>
+            </div>
+        </div>
+    </div>
+    <!-- Basic JavaScript to provide simple interactivity for the static model. 
+         This includes timer functionality, click counters, dynamic player list population, 
+         file upload for player lists, and substitution management. -->
+    <script>
+        // Global variables
+        let availablePlayers = [];
+        let currentLineup = {
+            startxi: new Array(11).fill(''),
+            bench: new Array(7).fill('')
+        };
+        let substitutions = [];
+        let customTags = [];
+        let eventProtocol = [];
+        let currentHalf = 1;
+        let defaultTags = [
+            { label: 'Tor', color: '#dc3545' },
+            { label: 'Vorlage', color: '#007bff' },
+            { label: 'Pass', color: '#28a745' },
+            { label: 'Foul', color: '#fd7e14' },
+            { label: 'Abseits', color: '#6f42c1' },
+            { label: 'Ecke', color: '#20c997' },
+            { label: 'Freistoß', color: '#6c757d' },
+            { label: 'Zweikampf', color: '#795548' },
+            { label: 'Dribbling', color: '#ff5722' },
+            { label: 'Pressing', color: '#607d8b' },
+            { label: 'Ballbesitz', color: '#2196f3' },
+            { label: 'Flanke', color: '#9c27b0' },
+            { label: 'Kopfball', color: '#f44336' },
+            { label: 'Schuss', color: '#4caf50' },
+            { label: 'Parade', color: '#ff9800' },
+            { label: 'Gelbe Karte', color: '#ffc107' },
+            { label: 'Rote Karte', color: '#dc3545' },
+            { label: 'Elfmeter', color: '#6c757d' }
+        ];
+        let positionLabels = {
+            '442': ['TW', 'RV', 'IV', 'IV', 'LV', 'RM', 'ZM', 'ZM', 'LM', 'ST', 'ST'],
+            '433': ['TW', 'RV', 'IV', 'IV', 'LV', 'ZM', 'ZM', 'ZM', 'RF', 'ST', 'LF'],
+            '352': ['TW', 'IV', 'IV', 'IV', 'RM', 'ZM', 'ZM', 'ZM', 'LM', 'ST', 'ST'],
+            '541': ['TW', 'RV', 'IV', 'IV', 'IV', 'LV', 'ZM', 'ZM', 'ZM', 'ZM', 'ST'],
+            'custom': ['TW', 'SP', 'SP', 'SP', 'SP', 'SP', 'SP', 'SP', 'SP', 'SP', 'SP']
+        };
+        // Populate player input lists (StartXI and Bench)
+        function populatePlayerLists() {
+            const startList = document.getElementById('startxi-list');
+            const benchList = document.getElementById('bench-list');
+            const playerSelect = document.getElementById('player-select');
+            const formation = document.getElementById('formation-select').value;
+            const positions = positionLabels[formation] || positionLabels['442'];
+            
+            // Clear existing lists
+            startList.innerHTML = '';
+            benchList.innerHTML = '';
+            
+            // Helper to add list items with dropdowns
+            function addPlayerDropdown(list, index, isStartXI, position = '') {
+                const li = document.createElement('li');
+                
+                if (position) {
+                    const posLabel = document.createElement('span');
+                    posLabel.className = 'position-label';
+                    posLabel.textContent = position;
+                    li.appendChild(posLabel);
+                }
+                
+                const select = document.createElement('select');
+                select.className = 'player-select';
+                select.dataset.index = index;
+                select.dataset.type = isStartXI ? 'startxi' : 'bench';
+                
+                // Add empty option
+                const emptyOption = document.createElement('option');
+                emptyOption.value = '';
+                emptyOption.textContent = isStartXI ? `${position || 'Spieler'} wählen...` : 'Bankspieler wählen...';
+                select.appendChild(emptyOption);
+                
+                // Add available players
+                availablePlayers.forEach(player => {
+                    const option = document.createElement('option');
+                    option.value = player;
+                    option.textContent = player;
+                    select.appendChild(option);
+                });
+                
+                // Set current value
+                const currentValue = isStartXI ? currentLineup.startxi[index] : currentLineup.bench[index];
+                if (currentValue) {
+                    select.value = currentValue;
+                }
+                
+                select.addEventListener('change', handlePlayerSelection);
+                
+                li.appendChild(select);
+                list.appendChild(li);
+            }
+            
+            // Add StartXI players with positions
+            for (let i = 0; i < 11; i++) {
+                addPlayerDropdown(startList, i, true, positions[i]);
+            }
+            
+            // Add bench players
+            for (let i = 0; i < 7; i++) {
+                addPlayerDropdown(benchList, i, false);
+            }
+            
+            updatePlayerOptions();
+            updateSubstitutionOptions();
+        }
+        
+        // Handle player selection in dropdowns
+        function handlePlayerSelection(event) {
+            const select = event.target;
+            const index = parseInt(select.dataset.index);
+            const type = select.dataset.type;
+            const newPlayer = select.value;
+            const oldPlayer = type === 'startxi' ? currentLineup.startxi[index] : currentLineup.bench[index];
+            
+            // Update lineup
+            if (type === 'startxi') {
+                currentLineup.startxi[index] = newPlayer;
+            } else {
+                currentLineup.bench[index] = newPlayer;
+            }
+            
+            // Update all dropdowns to prevent duplicate selections
+            updatePlayerDropdownOptions();
+            updatePlayerOptions();
+            updateSubstitutionOptions();
+        }
+        
+        // Update dropdown options to prevent duplicates
+        function updatePlayerDropdownOptions() {
+            const allSelects = document.querySelectorAll('.player-select');
+            const usedPlayers = [...currentLineup.startxi, ...currentLineup.bench].filter(p => p !== '');
+            
+            allSelects.forEach(select => {
+                const currentValue = select.value;
+                const options = select.querySelectorAll('option');
+                
+                options.forEach(option => {
+                    if (option.value === '') return; // Skip empty option
+                    
+                    if (usedPlayers.includes(option.value) && option.value !== currentValue) {
+                        option.disabled = true;
+                        option.style.color = '#ccc';
+                    } else {
+                        option.disabled = false;
+                        option.style.color = '';
+                    }
+                });
+            });
+        }
+        
+        // Dynamic tagging grid management
+        function populateTaggingGrid(tags = defaultTags) {
+            const grid = document.getElementById('tagging-grid');
+            grid.innerHTML = ''; // Clear existing tags
+            
+            tags.forEach(tag => {
+                const tagButton = document.createElement('div');
+                tagButton.className = 'tag-button';
+                tagButton.dataset.label = tag.label;
+                
+                // Add colored indicator
+                tagButton.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <div style="width: 12px; height: 12px; background: ${tag.color}; border-radius: 50%; border: 1px solid #dee2e6;"></div>
+                        <span>${tag.label}</span>
+                    </div>
+                    <span class="tag-count">0</span>
+                `;
+                
+                // Add click event
+                tagButton.addEventListener('click', () => {
+                    incrementTagCount(tagButton);
+                });
+                
+                grid.appendChild(tagButton);
+            });
+            
+            // Update quick tag connections
+            updateQuickTagConnections();
+        }
+        
+        // Helper function to adjust color brightness
+        function adjustBrightness(hex, percent) {
+            // Remove # if present
+            hex = hex.replace(/^#/, '');
+            
+            // Parse r, g, b values
+            const num = parseInt(hex, 16);
+            const amt = Math.round(2.55 * percent);
+            const R = (num >> 16) + amt;
+            const G = (num >> 8 & 0x00FF) + amt;
+            const B = (num & 0x0000FF) + amt;
+            
+            return "#" + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+                         (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+                         (B < 255 ? B < 1 ? 0 : B : 255)).toString(16).slice(1);
+        }
+        
+        // Update quick tag button connections to tagging grid
+        function updateQuickTagConnections() {
+            document.querySelectorAll('#quick-tags button').forEach(btn => {
+                // Remove old listeners by cloning
+                const newBtn = btn.cloneNode(true);
+                btn.parentNode.replaceChild(newBtn, btn);
+                
+                newBtn.addEventListener('click', () => {
+                    const label = newBtn.textContent.trim();
+                    
+                    if (label.includes('Tor')) {
+                        openGoalModal();
+                    } else if (label.includes('Halbzeit')) {
+                        openHalftimeModal();
+                    }
+                });
+            });
+        }
+        
+        // Tags management functions
+        function setupTagsManagement() {
+            const defaultTagsBtn = document.getElementById('default-tags-btn');
+            const uploadTagsBtn = document.getElementById('upload-tags-btn');
+            const clearTagsBtn = document.getElementById('clear-tags-btn');
+            const tagsFileInput = document.getElementById('tags-file-input');
+            const tagsStatus = document.getElementById('uploaded-tags');
+            
+            // Load default tags
+            defaultTagsBtn.addEventListener('click', () => {
+                customTags = [...defaultTags];
+                populateTaggingGrid(customTags);
+                tagsStatus.textContent = `${defaultTags.length} Standard Begriffe geladen`;
+                tagsStatus.style.color = '#3498db';
+            });
+            
+            // Upload custom tags
+            uploadTagsBtn.addEventListener('click', () => {
+                tagsFileInput.click();
+            });
+            
+            tagsFileInput.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (file && file.type === 'text/plain') {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const content = e.target.result;
+                        const lines = content.split('\n')
+                            .map(line => line.trim())
+                            .filter(line => line !== '');
+                        
+                        if (lines.length > 0) {
+                            customTags = parseCustomTags(lines);
+                            populateTaggingGrid(customTags);
+                            tagsStatus.textContent = `${customTags.length} eigene Begriffe geladen`;
+                            tagsStatus.style.color = '#9b59b6';
+                        } else {
+                            tagsStatus.textContent = 'Fehler: Leere Tag-Datei';
+                            tagsStatus.style.color = '#e74c3c';
+                        }
+                    };
+                    reader.readAsText(file);
+                } else {
+                    tagsStatus.textContent = 'Fehler: Nur .txt Dateien erlaubt';
+                    tagsStatus.style.color = '#e74c3c';
+                }
+            });
+            
+            // Clear all tags
+            clearTagsBtn.addEventListener('click', () => {
+                if (confirm('Möchten Sie alle Tagging-Begriffe wirklich löschen?')) {
+                    customTags = [];
+                    populateTaggingGrid([]);
+                    tagsStatus.textContent = 'Keine Begriffe geladen';
+                    tagsStatus.style.color = '#e74c3c';
+                }
+            });
+        }
+        
+        function parseCustomTags(lines) {
+            const colorPalette = [
+                '#1abc9c', '#e67e22', '#9b59b6', '#34495e', '#2c3e50', 
+                '#16a085', '#d35400', '#7f8c8d', '#2980b9', '#8e44ad',
+                '#c0392b', '#27ae60', '#f39c12', '#f1c40f', '#e74c3c',
+                '#95a5a6', '#3498db', '#e74c3c', '#f39c12', '#2ecc71'
+            ];
+            
+            return lines.map((line, index) => {
+                // Support format: "TagName" or "TagName,#hexcolor"
+                const parts = line.split(',');
+                const label = parts[0].trim();
+                const color = parts[1] ? parts[1].trim() : colorPalette[index % colorPalette.length];
+                
+                return { label, color };
+            });
+        }
+        // Update the player select options based on current lineup
+        function updatePlayerOptions() {
+            const select = document.getElementById('player-select');
+            // Clear existing options except first
+            const existing = Array.from(select.options);
+            existing.forEach((opt, idx) => { if (idx !== 0) select.removeChild(opt); });
+            
+            // Add all players from current lineup
+            const allPlayers = [...currentLineup.startxi, ...currentLineup.bench].filter(p => p !== '');
+            allPlayers.forEach(name => {
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                select.appendChild(option);
+            });
+        }
+        
+        // File upload functionality
+        function setupFileUpload() {
+            const uploadBtn = document.getElementById('upload-players-btn');
+            const fileInput = document.getElementById('player-file-input');
+            const uploadStatus = document.getElementById('uploaded-players');
+            
+            uploadBtn.addEventListener('click', () => {
+                fileInput.click();
+            });
+            
+            fileInput.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (file && file.type === 'text/plain') {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const content = e.target.result;
+                        const players = content.split('\n')
+                            .map(line => line.trim())
+                            .filter(line => line !== '');
+                        
+                        if (players.length > 0) {
+                            availablePlayers = players;
+                            uploadStatus.textContent = `${players.length} Spieler geladen`;
+                            uploadStatus.style.color = '#27ae60';
+                            
+                            // Clear current lineup
+                            currentLineup.startxi.fill('');
+                            currentLineup.bench.fill('');
+                            
+                            // Repopulate lists
+                            populatePlayerLists();
+                        } else {
+                            uploadStatus.textContent = 'Fehler: Leere Datei';
+                            uploadStatus.style.color = '#e74c3c';
+                        }
+                    };
+                    reader.readAsText(file);
+                } else {
+                    uploadStatus.textContent = 'Fehler: Nur .txt Dateien erlaubt';
+                    uploadStatus.style.color = '#e74c3c';
+                }
+            });
+        }
+        
+        // Formation change handler
+        function setupFormationSelector() {
+            const formationSelect = document.getElementById('formation-select');
+            formationSelect.addEventListener('change', () => {
+                populatePlayerLists();
+            });
+        }
+        
+        // Clear lineup functionality
+        function setupClearLineup() {
+            const clearBtn = document.getElementById('clear-lineup-btn');
+            clearBtn.addEventListener('click', () => {
+                if (confirm('Möchten Sie die aktuelle Aufstellung wirklich löschen?')) {
+                    currentLineup.startxi.fill('');
+                    currentLineup.bench.fill('');
+                    populatePlayerLists();
+                }
+            });
+        }
+        
+        // Substitution management
+        function updateSubstitutionOptions() {
+            const subOutSelect = document.getElementById('sub-out-select');
+            const subInSelect = document.getElementById('sub-in-select');
+            
+            // Clear options except first
+            [subOutSelect, subInSelect].forEach(select => {
+                const existing = Array.from(select.options);
+                existing.forEach((opt, idx) => { if (idx !== 0) select.removeChild(opt); });
+            });
+            
+            // Add current startxi players to sub-out
+            currentLineup.startxi.forEach(player => {
+                if (player) {
+                    const option = document.createElement('option');
+                    option.value = player;
+                    option.textContent = player;
+                    subOutSelect.appendChild(option);
+                }
+            });
+            
+            // Add bench players to sub-in
+            currentLineup.bench.forEach(player => {
+                if (player) {
+                    const option = document.createElement('option');
+                    option.value = player;
+                    option.textContent = player;
+                    subInSelect.appendChild(option);
+                }
+            });
+        }
+        
+        function setupSubstitutions() {
+            const makeSubBtn = document.getElementById('make-substitution-btn');
+            const subOutSelect = document.getElementById('sub-out-select');
+            const subInSelect = document.getElementById('sub-in-select');
+            
+            makeSubBtn.addEventListener('click', () => {
+                const playerOut = subOutSelect.value;
+                const playerIn = subInSelect.value;
+                
+                if (!playerOut || !playerIn) {
+                    alert('Bitte beide Spieler auswählen');
+                    return;
+                }
+                
+                if (playerOut === playerIn) {
+                    alert('Ein Spieler kann nicht sich selbst ersetzen');
+                    return;
+                }
+                
+                // Get current time from timer
+                const currentTime = document.getElementById('timer').textContent;
+                
+                // Find positions in arrays
+                const startXIIndex = currentLineup.startxi.indexOf(playerOut);
+                const benchIndex = currentLineup.bench.indexOf(playerIn);
+                
+                if (startXIIndex === -1 || benchIndex === -1) {
+                    alert('Fehler bei der Auswechslung');
+                    return;
+                }
+                
+                // Make the substitution
+                currentLineup.startxi[startXIIndex] = playerIn;
+                currentLineup.bench[benchIndex] = playerOut;
+                
+                // Log the substitution
+                substitutions.push({
+                    time: currentTime,
+                    out: playerOut,
+                    in: playerIn
+                });
+                
+                // Update displays
+                populatePlayerLists();
+                updateSubstitutionLog();
+                
+                // Reset selects
+                subOutSelect.value = '';
+                subInSelect.value = '';
+            });
+        }
+        
+        function updateSubstitutionLog() {
+            const logContainer = document.getElementById('substitutions-list');
+            
+            if (substitutions.length === 0) {
+                logContainer.textContent = 'Noch keine Auswechslungen';
+                return;
+            }
+            
+            logContainer.innerHTML = '';
+            substitutions.forEach((sub, index) => {
+                const div = document.createElement('div');
+                div.style.marginBottom = '5px';
+                div.innerHTML = `
+                    <span style="font-weight: bold;">${sub.time}'</span> 
+                    <span style="color: #e74c3c;">↓ ${sub.out}</span> 
+                    <span style="color: #27ae60;">↑ ${sub.in}</span>
+                `;
+                logContainer.appendChild(div);
+            });
+        }
+        // Timer functionality
+        let timerInterval = null;
+        let totalSeconds = 0;
+        function updateTimerDisplay() {
+            const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
+            const seconds = String(totalSeconds % 60).padStart(2, '0');
+            document.getElementById('timer').textContent = `${minutes}:${seconds}`;
+        }
+        document.querySelector('#timer-buttons .start').addEventListener('click', () => {
+            if (timerInterval === null) {
+                timerInterval = setInterval(() => {
+                    totalSeconds++;
+                    updateTimerDisplay();
+                }, 1000);
+            }
+        });
+        document.querySelector('#timer-buttons .stop').addEventListener('click', () => {
+            if (timerInterval !== null) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        });
+        document.querySelector('#timer-buttons .reset').addEventListener('click', () => {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            totalSeconds = 0;
+            updateTimerDisplay();
+        });
+        // Quick tags and tagging grid counters are handled by dynamic setup
+        
+        // Tagging grid click counters
+        // Tagging grid click counters
+        function incrementTagCount(tagBtn) {
+            const countSpan = tagBtn.querySelector('.tag-count');
+            let count = parseInt(countSpan.textContent, 10);
+            count++;
+            countSpan.textContent = count;
+        }
+        
+        // Dynamic setup handles individual tag button events
+        // Populate lists on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            // Initialize with default tags
+            customTags = [...defaultTags];
+            populateTaggingGrid(customTags);
+            
+            populatePlayerLists();
+            setupMobileNavigation();
+            setupFileUpload();
+            setupFormationSelector();
+            setupClearLineup();
+            setupSubstitutions();
+            setupTagsManagement();
+            setupModals();
+            enhanceExportFunctions();
+        });
+        
+        // Enhanced export functions
+        function enhanceExportFunctions() {
+            const exportXMLBtn = document.getElementById('export-xml');
+            const exportJSONBtn = document.getElementById('export-json');
+            
+            exportXMLBtn.addEventListener('click', () => {
+                const matchData = collectMatchData();
+                const xml = generateXML(matchData);
+                downloadFile(xml, 'match-data.xml', 'application/xml');
+            });
+            
+            exportJSONBtn.addEventListener('click', () => {
+                const matchData = collectMatchData();
+                const json = JSON.stringify(matchData, null, 2);
+                downloadFile(json, 'match-data.json', 'application/json');
+            });
+        }
+        
+        function collectMatchData() {
+            // Collect all tag counts
+            const tags = {};
+            document.querySelectorAll('.tag-button').forEach(btn => {
+                const label = btn.dataset.label;
+                const count = parseInt(btn.querySelector('.tag-count').textContent);
+                tags[label] = count;
+            });
+            
+            // Get current note
+            const note = document.getElementById('note-input').value;
+            const selectedPlayer = document.getElementById('player-select').value;
+            
+            return {
+                timestamp: new Date().toISOString(),
+                duration: document.getElementById('timer').textContent,
+                formation: document.getElementById('formation-select').value,
+                currentHalf: currentHalf,
+                lineup: {
+                    startxi: currentLineup.startxi.filter(p => p !== ''),
+                    bench: currentLineup.bench.filter(p => p !== '')
+                },
+                substitutions: substitutions,
+                eventProtocol: eventProtocol,
+                events: tags,
+                taggingSetup: {
+                    tagsUsed: customTags.length > 0 ? 'custom' : 'default',
+                    totalTags: customTags.length || defaultTags.length,
+                    tagsList: customTags.length > 0 ? customTags : defaultTags
+                },
+                notes: {
+                    text: note,
+                    player: selectedPlayer
+                },
+                playerList: availablePlayers
+            };
+        }
+        
+        function generateXML(data) {
+            return `<?xml version="1.0" encoding="UTF-8"?>
+<match>
+    <metadata>
+        <timestamp>${data.timestamp}</timestamp>
+        <duration>${data.duration}</duration>
+        <formation>${data.formation}</formation>
+        <currentHalf>${data.currentHalf}</currentHalf>
+    </metadata>
+    <lineup>
+        <startxi>
+            ${data.lineup.startxi.map(player => `<player>${player}</player>`).join('\n            ')}
+        </startxi>
+        <bench>
+            ${data.lineup.bench.map(player => `<player>${player}</player>`).join('\n            ')}
+        </bench>
+    </lineup>
+    <substitutions>
+        ${data.substitutions.map(sub => 
+            `<substitution time="${sub.time}" out="${sub.out}" in="${sub.in}"/>`
+        ).join('\n        ')}
+    </substitutions>
+    <eventProtocol>
+        ${data.eventProtocol.map(event => 
+            `<event type="${event.type}" time="${event.time}" half="${event.half}"${
+                event.scorer ? ` scorer="${event.scorer}"` : ''
+            }${event.assist ? ` assist="${event.assist}"` : ''}${
+                event.note ? ` note="${event.note}"` : ''
+            }${event.action ? ` action="${event.action}"` : ''}/>`
+        ).join('\n        ')}
+    </eventProtocol>
+    <tagging>
+        <setup type="${data.taggingSetup.tagsUsed}" totalTags="${data.taggingSetup.totalTags}"/>
+        <tagsList>
+            ${data.taggingSetup.tagsList.map(tag => 
+                `<tag label="${tag.label}" color="${tag.color}"/>`
+            ).join('\n            ')}
+        </tagsList>
+    </tagging>
+    <events>
+        ${Object.entries(data.events).map(([event, count]) => 
+            `<event type="${event}" count="${count}"/>`
+        ).join('\n        ')}
+    </events>
+    <notes player="${data.notes.player}">${data.notes.text}</notes>
+</match>`;
+        }
+        
+        function downloadFile(content, filename, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+        
+        // Mobile Navigation Setup
+        function setupMobileNavigation() {
+            const mobileNav = document.getElementById('mobile-nav');
+            const sidebar = document.getElementById('sidebar');
+            
+            if (mobileNav && sidebar) {
+                mobileNav.addEventListener('click', () => {
+                    const isCollapsed = sidebar.classList.contains('collapsed');
+                    
+                    if (isCollapsed) {
+                        sidebar.classList.remove('collapsed');
+                        sidebar.classList.add('expanded');
+                        mobileNav.classList.remove('collapsed');
+                        mobileNav.textContent = '▼ Navigation & Filter';
+                    } else {
+                        sidebar.classList.remove('expanded');
+                        sidebar.classList.add('collapsed');
+                        mobileNav.classList.add('collapsed');
+                        mobileNav.textContent = '▶ Navigation & Filter';
+                    }
+                });
+                
+                // Initial state setup
+                if (window.innerWidth <= 768) {
+                    mobileNav.classList.add('collapsed');
+                    mobileNav.textContent = '▶ Navigation & Filter';
+                }
+            }
+        }
+        
+        // Event Protocol Management
+        function addEventToProtocol(event) {
+            eventProtocol.push({
+                ...event,
+                timestamp: new Date().toISOString(),
+                half: currentHalf
+            });
+            updateEventProtocolDisplay();
+        }
+        
+        function updateEventProtocolDisplay() {
+            const eventList = document.getElementById('event-list');
+            
+            if (eventProtocol.length === 0) {
+                eventList.innerHTML = '<div style="text-align: center; color: #6c757d; padding: 30px; font-style: italic;">Noch keine Ereignisse protokolliert</div>';
+                return;
+            }
+            
+            eventList.innerHTML = '';
+            eventProtocol.forEach(event => {
+                const eventItem = document.createElement('div');
+                eventItem.className = 'event-item';
+                
+                let details = '';
+                switch(event.type) {
+                    case 'goal':
+                        details = `<strong>${event.scorer}</strong>${event.assist ? ` (Vorlage: <em>${event.assist}</em>)` : ''}${event.note ? ` - <span style="color: #6c757d;">${event.note}</span>` : ''}`;
+                        break;
+                    case 'halftime':
+                        details = `<strong>${event.action}</strong>`;
+                        break;
+                    case 'substitution':
+                        details = `<span style="color: #d32f2f;">${event.out}</span> ↔ <span style="color: #00a651;">${event.in}</span>`;
+                        break;
+                    default:
+                        details = event.details || '';
+                }
+                
+                eventItem.innerHTML = `
+                    <span class="event-time">${event.time}</span>
+                    <span class="event-type">${getEventIcon(event.type)}</span>
+                    <span class="event-details">${details}</span>
+                    <span class="event-half">${event.half}H</span>
+                `;
+                
+                eventList.appendChild(eventItem);
+            });
+            
+            // Auto-scroll to bottom
+            eventList.scrollTop = eventList.scrollHeight;
+        }
+        
+        function getEventIcon(type) {
+            const icons = {
+                'goal': '⚽',
+                'halftime': '⏱️',
+                'substitution': '🔄',
+                'card': '🟨',
+                'foul': '⚡'
+            };
+            return icons[type] || '📝';
+        }
+        
+        // Modal Management
+        function openGoalModal() {
+            const modal = document.getElementById('goalModal');
+            populatePlayerSelects();
+            modal.style.display = 'block';
+        }
+        
+        function closeGoalModal() {
+            const modal = document.getElementById('goalModal');
+            modal.style.display = 'none';
+            // Reset form
+            document.getElementById('goalScorer').value = '';
+            document.getElementById('goalAssist').value = '';
+            document.getElementById('goalNote').value = '';
+        }
+        
+        function openHalftimeModal() {
+            const modal = document.getElementById('halftimeModal');
+            modal.style.display = 'block';
+        }
+        
+        function closeHalftimeModal() {
+            const modal = document.getElementById('halftimeModal');
+            modal.style.display = 'none';
+        }
+        
+        function populatePlayerSelects() {
+            const goalScorerList = document.getElementById('player-list-scorer');
+            const goalAssistList = document.getElementById('player-list-assist');
+            
+            // Clear existing options
+            goalScorerList.innerHTML = '';
+            goalAssistList.innerHTML = '';
+            
+            // Add current lineup players
+            const allPlayers = [...currentLineup.startxi, ...currentLineup.bench].filter(p => p !== '');
+            allPlayers.forEach(player => {
+                const option1 = document.createElement('option');
+                option1.value = player;
+                goalScorerList.appendChild(option1);
+                
+                const option2 = document.createElement('option');
+                option2.value = player;
+                goalAssistList.appendChild(option2);
+            });
+        }
+        
+        function saveGoal() {
+            const scorer = document.getElementById('goalScorer').value;
+            const assist = document.getElementById('goalAssist').value;
+            const note = document.getElementById('goalNote').value;
+            
+            if (!scorer) {
+                alert('Bitte wählen Sie einen Torschützen aus.');
+                return;
+            }
+            
+            const currentTime = document.getElementById('timer').textContent;
+            
+            // Add to event protocol
+            addEventToProtocol({
+                type: 'goal',
+                time: currentTime,
+                scorer: scorer,
+                assist: assist,
+                note: note
+            });
+            
+            // Increment goal counter in tagging grid if exists
+            const goalTag = document.querySelector('.tag-button[data-label="Tor"]');
+            if (goalTag) {
+                incrementTagCount(goalTag);
+            }
+            
+            closeGoalModal();
+        }
+        
+        function endFirstHalf() {
+            const currentTime = document.getElementById('timer').textContent;
+            
+            addEventToProtocol({
+                type: 'halftime',
+                time: currentTime,
+                action: '1. Halbzeit beendet'
+            });
+            
+            closeHalftimeModal();
+        }
+        
+        function startSecondHalf() {
+            const currentTime = document.getElementById('timer').textContent;
+            currentHalf = 2;
+            
+            addEventToProtocol({
+                type: 'halftime',
+                time: currentTime,
+                action: '2. Halbzeit gestartet'
+            });
+            
+            closeHalftimeModal();
+        }
+        
+        // Setup modal close events
+        function setupModals() {
+            // Close modals when clicking outside
+            window.addEventListener('click', (event) => {
+                const goalModal = document.getElementById('goalModal');
+                const halftimeModal = document.getElementById('halftimeModal');
+                
+                if (event.target === goalModal) {
+                    closeGoalModal();
+                }
+                if (event.target === halftimeModal) {
+                    closeHalftimeModal();
+                }
+            });
+            
+            // Close buttons
+            document.querySelectorAll('.close').forEach(closeBtn => {
+                closeBtn.addEventListener('click', (e) => {
+                    const modal = e.target.closest('.modal');
+                    if (modal) {
+                        modal.style.display = 'none';
+                    }
+                });
+            });
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            const mobileNav = document.getElementById('mobile-nav');
+            const sidebar = document.getElementById('sidebar');
+            
+            if (window.innerWidth > 768) {
+                // Desktop: Reset classes
+                sidebar.classList.remove('collapsed', 'expanded');
+                if (mobileNav) {
+                    mobileNav.classList.remove('collapsed');
+                }
+            } else {
+                // Mobile: Ensure collapsed state
+                if (!sidebar.classList.contains('expanded')) {
+                    sidebar.classList.add('collapsed');
+                    if (mobileNav) {
+                        mobileNav.classList.add('collapsed');
+                        mobileNav.textContent = '▶ Navigation & Filter';
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
